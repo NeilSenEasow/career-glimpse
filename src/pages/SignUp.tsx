@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,8 +20,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { UserPlus } from 'lucide-react';
 
 const signUpSchema = z.object({
-  name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
+  username: z.string().min(2, {
+    message: "Username must be at least 2 characters.",
   }),
   email: z.string().email({
     message: "Please enter a valid email address.",
@@ -42,7 +41,7 @@ const SignUp = () => {
   const form = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
-      name: "",
+      username: "",
       email: "",
       password: "",
     },
@@ -51,7 +50,7 @@ const SignUp = () => {
   const onSubmit = async (values: SignUpValues) => {
     setError(null);
     try {
-      await signup(values.name, values.email, values.password);
+      await signup(values.username, values.email, values.password);
       toast.success("Account created successfully!");
       navigate("/profile");
     } catch (error) {
@@ -85,12 +84,12 @@ const SignUp = () => {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
                   control={form.control}
-                  name="name"
+                  name="username"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Full Name</FormLabel>
+                      <FormLabel>Username</FormLabel>
                       <FormControl>
-                        <Input placeholder="Your full name" {...field} />
+                        <Input placeholder="Your username" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

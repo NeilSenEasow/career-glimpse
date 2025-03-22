@@ -56,8 +56,8 @@ const Hero = () => {
             Discover Your Perfect Career Path
           </span>
           
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-            Find Your Ideal Career With Our <span className="bg-clip-text text-transparent bg-gradient-primary">AI-Powered</span> Assessment
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-6 animate-fade-in text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-red-500" style={{ animationDelay: '0.1s' }}>
+            Unleash Your Potential with Our <span className="text-shadow">AI-Driven</span> Career Assessment
           </h1>
           
           <p className="text-lg text-foreground/80 mb-8 max-w-lg mx-auto lg:mx-0 animate-fade-in" style={{ animationDelay: '0.2s' }}>

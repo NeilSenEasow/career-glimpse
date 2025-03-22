@@ -46,7 +46,7 @@ const Navbar = () => {
           to="/" 
           className="text-2xl font-semibold text-foreground transition-all hover:opacity-80"
         >
-          career<span className="text-primary">glimpse</span>
+          career<span className="text-primary">finder</span>
         </Link>
         
         <nav className="hidden md:flex items-center space-x-8">

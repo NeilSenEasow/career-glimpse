@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -19,7 +18,7 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "http://localhost:5000";
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -91,24 +90,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Set user data and auth state
       setUser({
         id: userData.id,
-        name: userData.name,
+        name: userData.username,
         email: userData.email
       });
       setIsAuthenticated(true);
       
     } catch (error) {
       console.error("Login error:", error);
-      if (error instanceof Error) {
-        throw new Error(error.message);
-      } else {
-        throw new Error('An unknown error occurred during login');
-      }
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const signup = async (name: string, email: string, password: string) => {
+  const signup = async (username: string, email: string, password: string) => {
     setIsLoading(true);
     try {
       const response = await fetch(`${API_URL}/auth/register`, {
@@ -116,7 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify({ username, email, password })
       });
       
       const data = await response.json();
@@ -133,7 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Set user data and auth state
       setUser({
         id: userData.id,
-        name: userData.name,
+        name: userData.username,
         email: userData.email
       });
       setIsAuthenticated(true);

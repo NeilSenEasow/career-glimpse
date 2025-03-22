@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { LogIn } from 'lucide-react';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const signInSchema = z.object({
   email: z.string().email({
@@ -32,7 +33,8 @@ type SignInValues = z.infer<typeof signInSchema>;
 
 const SignIn = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isLoading } = useAuth();
+  const [error, setError] = useState<string | null>(null);
   
   const form = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
@@ -43,12 +45,17 @@ const SignIn = () => {
   });
 
   const onSubmit = async (values: SignInValues) => {
+    setError(null);
     try {
       await login(values.email, values.password);
       toast.success("Signed in successfully!");
       navigate("/profile");
     } catch (error) {
-      toast.error("Failed to sign in. Please check your credentials.");
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("Failed to sign in. Please check your credentials.");
+      }
     }
   };
 
@@ -64,6 +71,12 @@ const SignIn = () => {
           </div>
           
           <div className="bg-card rounded-xl shadow-lg p-8 animate-scale-in">
+            {error && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
@@ -94,9 +107,22 @@ const SignIn = () => {
                   )}
                 />
                 
-                <Button type="submit" className="w-full py-6">
-                  <LogIn className="mr-2" size={18} />
-                  Sign In
+                <Button 
+                  type="submit" 
+                  className="w-full py-6" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <span className="flex items-center">
+                      <span className="w-4 h-4 border-t-2 border-white rounded-full animate-spin mr-2"></span>
+                      Signing In...
+                    </span>
+                  ) : (
+                    <>
+                      <LogIn className="mr-2" size={18} />
+                      Sign In
+                    </>
+                  )}
                 </Button>
               </form>
             </Form>

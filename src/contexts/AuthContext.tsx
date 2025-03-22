@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { toast } from "sonner";
 
 type User = {
   id: string;
@@ -13,59 +14,151 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  isLoading: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const API_URL = "http://localhost:5000/api";
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Check for existing user in localStorage on mount
+  // Check for existing token and load user data on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
-    }
+    const checkAuth = async () => {
+      const token = localStorage.getItem("token");
+      
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${API_URL}/auth/user`, {
+          headers: {
+            'x-auth-token': token
+          }
+        });
+        
+        if (response.ok) {
+          const userData = await response.json();
+          setUser({
+            id: userData._id,
+            name: userData.name,
+            email: userData.email
+          });
+          setIsAuthenticated(true);
+        } else {
+          // If token is invalid, remove it
+          localStorage.removeItem("token");
+        }
+      } catch (error) {
+        console.error("Error verifying authentication:", error);
+        localStorage.removeItem("token");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkAuth();
   }, []);
 
   const login = async (email: string, password: string) => {
-    // This would connect to MongoDB in the future
-    // For now, we'll simulate a successful login
-    const mockUser = {
-      id: "user123",
-      name: "Test User",
-      email: email,
-    };
-    
-    setUser(mockUser);
-    setIsAuthenticated(true);
-    localStorage.setItem("user", JSON.stringify(mockUser));
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+      
+      const { token, user: userData } = data;
+      
+      // Save token to localStorage
+      localStorage.setItem("token", token);
+      
+      // Set user data and auth state
+      setUser({
+        id: userData.id,
+        name: userData.name,
+        email: userData.email
+      });
+      setIsAuthenticated(true);
+      
+    } catch (error) {
+      console.error("Login error:", error);
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      } else {
+        throw new Error('An unknown error occurred during login');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const signup = async (name: string, email: string, password: string) => {
-    // This would connect to MongoDB in the future
-    // For now, we'll simulate a successful signup
-    const mockUser = {
-      id: "user123",
-      name: name,
-      email: email,
-    };
-    
-    setUser(mockUser);
-    setIsAuthenticated(true);
-    localStorage.setItem("user", JSON.stringify(mockUser));
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name, email, password })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
+      
+      const { token, user: userData } = data;
+      
+      // Save token to localStorage
+      localStorage.setItem("token", token);
+      
+      // Set user data and auth state
+      setUser({
+        id: userData.id,
+        name: userData.name,
+        email: userData.email
+      });
+      setIsAuthenticated(true);
+      
+    } catch (error) {
+      console.error("Registration error:", error);
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      } else {
+        throw new Error('An unknown error occurred during registration');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const logout = () => {
+    localStorage.removeItem("token");
     setUser(null);
     setIsAuthenticated(false);
-    localStorage.removeItem("user");
+    toast.success("Logged out successfully");
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, login, signup, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

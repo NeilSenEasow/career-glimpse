@@ -3,12 +3,12 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, LogOut, LogIn } from 'lucide-react';
+import { User, LogOut, LogIn, UserPlus } from 'lucide-react';
 import { toast } from "sonner";
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, isLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,7 +29,6 @@ const Navbar = () => {
 
   const handleLogout = () => {
     logout();
-    toast.success("Logged out successfully");
     navigate("/");
   };
 
@@ -66,7 +65,9 @@ const Navbar = () => {
         </nav>
         
         <div className="flex items-center space-x-4">
-          {isAuthenticated ? (
+          {isLoading ? (
+            <div className="w-4 h-4 border-t-2 border-primary rounded-full animate-spin"></div>
+          ) : isAuthenticated ? (
             <>
               <Link 
                 to="/profile" 
@@ -94,9 +95,10 @@ const Navbar = () => {
               </Link>
               <Link 
                 to="/signup" 
-                className="px-6 py-2.5 rounded-full bg-primary text-white font-medium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:translate-y-[-2px] active:translate-y-0 transition-all duration-300 button-shine"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-primary text-white font-medium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:translate-y-[-2px] active:translate-y-0 transition-all duration-300 button-shine"
               >
-                Sign Up
+                <UserPlus size={18} className="hidden md:block" />
+                <span>Sign Up</span>
               </Link>
             </>
           )}

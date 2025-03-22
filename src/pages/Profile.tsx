@@ -1,23 +1,39 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { UserCircle, Mail, Award, Briefcase } from 'lucide-react';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Profile = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   
   // Redirect if not authenticated
-  React.useEffect(() => {
-    if (!isAuthenticated) {
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
       toast.error("Please log in to view your profile");
-      navigate("/signup");
+      navigate("/signin");
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, isLoading]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <div className="pt-32 pb-20">
+          <div className="container mx-auto px-6 md:px-8 text-center">
+            <div className="flex justify-center items-center h-64">
+              <div className="w-6 h-6 border-t-2 border-primary rounded-full animate-spin"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated || !user) {
     return null;
@@ -29,6 +45,12 @@ const Profile = () => {
       
       <div className="pt-32 pb-20">
         <div className="container mx-auto px-6 md:px-8">
+          <Alert className="mb-6">
+            <AlertDescription>
+              You are now authenticated! This is your protected profile page.
+            </AlertDescription>
+          </Alert>
+          
           <div className="max-w-4xl mx-auto">
             <div className="bg-card rounded-xl shadow-lg overflow-hidden">
               <div className="bg-primary/10 py-10 px-8 text-center">

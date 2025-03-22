@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -17,6 +17,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { UserPlus } from 'lucide-react';
 
 const signUpSchema = z.object({
   name: z.string().min(2, {
@@ -34,7 +36,8 @@ type SignUpValues = z.infer<typeof signUpSchema>;
 
 const SignUp = () => {
   const navigate = useNavigate();
-  const { signup } = useAuth();
+  const { signup, isLoading } = useAuth();
+  const [error, setError] = useState<string | null>(null);
   
   const form = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema),
@@ -46,12 +49,17 @@ const SignUp = () => {
   });
 
   const onSubmit = async (values: SignUpValues) => {
+    setError(null);
     try {
       await signup(values.name, values.email, values.password);
       toast.success("Account created successfully!");
       navigate("/profile");
     } catch (error) {
-      toast.error("Failed to create account. Please try again.");
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("Failed to create account. Please try again.");
+      }
     }
   };
 
@@ -67,6 +75,12 @@ const SignUp = () => {
           </div>
           
           <div className="bg-card rounded-xl shadow-lg p-8 animate-scale-in">
+            {error && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
@@ -111,13 +125,29 @@ const SignUp = () => {
                   )}
                 />
                 
-                <Button type="submit" className="w-full py-6">Create Account</Button>
+                <Button 
+                  type="submit" 
+                  className="w-full py-6"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <span className="flex items-center">
+                      <span className="w-4 h-4 border-t-2 border-white rounded-full animate-spin mr-2"></span>
+                      Creating Account...
+                    </span>
+                  ) : (
+                    <>
+                      <UserPlus className="mr-2" size={18} />
+                      Create Account
+                    </>
+                  )}
+                </Button>
               </form>
             </Form>
             
             <div className="mt-6 text-center text-sm">
               <p className="text-foreground/70">
-                Already have an account? <Link to="#" className="text-primary font-medium hover:underline">Sign in</Link>
+                Already have an account? <Link to="/signin" className="text-primary font-medium hover:underline">Sign in</Link>
               </p>
             </div>
           </div>

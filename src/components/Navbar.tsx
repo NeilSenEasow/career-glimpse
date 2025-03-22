@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, LogOut } from 'lucide-react';
+import { User, LogOut, LogIn } from 'lucide-react';
 import { toast } from "sonner";
 
 const Navbar = () => {
@@ -84,12 +84,21 @@ const Navbar = () => {
               </button>
             </>
           ) : (
-            <Link 
-              to="/signup" 
-              className="px-6 py-2.5 rounded-full bg-primary text-white font-medium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:translate-y-[-2px] active:translate-y-0 transition-all duration-300 button-shine"
-            >
-              Sign Up
-            </Link>
+            <>
+              <Link 
+                to="/signin" 
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+              >
+                <LogIn size={18} />
+                <span className="hidden md:inline">Sign In</span>
+              </Link>
+              <Link 
+                to="/signup" 
+                className="px-6 py-2.5 rounded-full bg-primary text-white font-medium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:translate-y-[-2px] active:translate-y-0 transition-all duration-300 button-shine"
+              >
+                Sign Up
+              </Link>
+            </>
           )}
         </div>
       </div>

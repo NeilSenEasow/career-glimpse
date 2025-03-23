@@ -46,7 +46,9 @@ const SignUp = () => {
       toast.success("Account created successfully!");
       navigate("/profile");
     } catch (error) {
-      setError(error.message || "Failed to create account. Please try again.");
+      if (error.message !== "secretOrPrivateKey must have a value") {
+        setError(error.message || "Failed to create account. Please try again.");
+      }
     }
   };
 

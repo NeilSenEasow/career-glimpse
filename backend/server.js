@@ -60,7 +60,7 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
     .catch(err => console.error("MongoDB connection error:", err));
 
 // Secret key for JWT
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret'; // Use an environment variable for the secret
+const JWT_SECRET = process.env.JWT_SECRET || 'your_default_jwt_secret'; // Ensure this is set
 
 passport.use(new LocalStrategy(
     async (email, password, done) => {
@@ -112,31 +112,31 @@ app.post("/auth/login", async (req, res, next) => {
 
 app.post("/auth/register", async (req, res) => {
     try {
-        const { username, email, password } = req.body; // Ensure this matches the request body structure
+        const { username, email, password } = req.body;
 
         // Check if the user already exists
-        const existingUserByEmail = await User.findOne({ email }); // Check by email
+        const existingUserByEmail = await User.findOne({ email });
         if (existingUserByEmail) {
-            return res.status(400).json({ message: "Email already exists" }); // Send specific error message as JSON
+            return res.status(400).json({ message: "Email already exists" });
         }
 
-        const existingUserByUsername = await User.findOne({ username }); // Check by username
+        const existingUserByUsername = await User.findOne({ username });
         if (existingUserByUsername) {
-            return res.status(400).json({ message: "Username already exists" }); // Send specific error message as JSON
+            return res.status(400).json({ message: "Username already exists" });
         }
 
         // Create a new user
-        const newUser = new User({ username, email, password }); // Ensure the User model has the email field
+        const newUser = new User({ username, email, password });
         await newUser.save();
 
         // Create JWT token
-        const token = jwt.sign({ id: newUser._id, username: newUser.username }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        const token = jwt.sign({ id: newUser._id, username: newUser.username }, JWT_SECRET, { expiresIn: '7d' });
 
         // Send success message as JSON
-        return res.json({ token, user: { id: newUser._id, username: newUser.username, email: newUser.email } }); // Send success message as JSON
+        return res.json({ token, user: { id: newUser._id, username: newUser.username, email: newUser.email } });
     } catch (err) {
         console.error("Registration error:", err); // Log the error for debugging
-        return res.status(500).json({ message: "Error registering user" }); // Send error message as JSON
+        return res.status(500).json({ message: "Error registering user" });
     }
 });
 

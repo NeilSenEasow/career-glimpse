@@ -286,7 +286,7 @@ function App() {
                     <ChevronRight className={`inline-block w-4 h-4 ml-1 transform transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`} />
                   </h3>
                   <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full">
-                    {career.matchScore || 0}% Match
+                    {career.match || 0}% Match
                   </span>
                 </div>
                 {isExpanded && (

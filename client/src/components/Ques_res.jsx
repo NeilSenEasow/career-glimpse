@@ -9,7 +9,6 @@ import {
   Compass,
   Zap,
   Award,
-  Sparkle,
   Loader2,
   Search,
   Globe,
@@ -20,7 +19,6 @@ import questionsData from '../questions.json';
 import api from '../services/api';
 import CareerRoadmap from './CareerRoadmap';
 import LoadingSpinner from './LoadingSpinner';
-// import ChatBot from './ChatBot'
 import Navbar from './Navbar';
 import Footer from './Footer';
 import { useLocation } from 'react-router-dom';
@@ -41,22 +39,23 @@ function App() {
   const [webCareerResults, setWebCareerResults] = useState(null);
   const [isWebSearching, setIsWebSearching] = useState(false);
   const [pdfCareerResults, setPdfCareerResults] = useState(null);
-  const location = useLocation();
+  const [location, setLocation] = useState(null);
 
   useEffect(() => {
-    // Get the category from the URL query parameters
-    const queryParams = new URLSearchParams(location.search);
+    const queryParams = new URLSearchParams(window.location.search);
     const category = queryParams.get('category');
 
-    // Load questions based on the selected category
     if (category) {
       fetchQuestions(category);
     }
-  }, [location]);
+
+    // Optionally, get the current path
+    setLocation(window.location.pathname);
+  }, []);
 
   const fetchQuestions = (category) => {
     try {
-      const questions = questionsData.tracks[category] || []; // Get questions based on the category
+      const questions = questionsData.tracks[category] || [];
       setAllQuestions(questions);
     } catch (err) {
       console.error('Error loading questions:', err);
@@ -71,16 +70,6 @@ function App() {
 
   const generateNextAIQuestion = async (previousAnswers) => {
     try {
-      // Log previous questions and answers
-      console.log('=== Generating New AI Question ===');
-      console.log('Based on previous Q&A:');
-      previousAnswers.forEach((qa, index) => {
-        console.log(`\nQ${index + 1}: ${qa.question}`);
-        console.log(`A${index + 1}: ${qa.answer}`);
-      });
-      console.log('\n-------------------');
-
-      // Use api instead of apiInstance
       const response = await api.generateQuestion(previousAnswers);
 
       if (response && response.question) {
@@ -90,12 +79,6 @@ function App() {
           type: 'mcq',
           options: response.question.options
         };
-
-        // Log the newly generated question
-        console.log('\nNew AI Generated Question:');
-        console.log('Question:', aiQuestion.question);
-        console.log('Options:', aiQuestion.options);
-        console.log('=== End of Generation ===\n');
 
         setAllQuestions(prev => [...prev, aiQuestion]);
         return true;
@@ -109,132 +92,93 @@ function App() {
   };
 
   const handleNextQuestion = async () => {
-    // Check if allQuestions is defined and has questions
     if (!allQuestions?.length) {
-        setError('No questions available. Please go back and select a category.');
-        return;
+      setError('No questions available. Please go back and select a category.');
+      return;
     }
 
     if (!currentAnswer) {
-        setError('Please select an answer before continuing');
-        return;
+      setError('Please select an answer before continuing');
+      return;
     }
 
     setIsLoading(true);
     setError(null);
 
     const loaderTimeout = setTimeout(() => {
-        setShowLoader(true);
+      setShowLoader(true);
     }, 5000);
 
     try {
-        // Log current question and answer
-        console.log('\n=== Processing Next Question ===');
-        console.log('Current Question Index:', currentQuestionIndex);
-        console.log('Total Questions:', allQuestions.length);
+      const currentQ = allQuestions[currentQuestionIndex];
+      const newAnswer = {
+        question: currentQ.question,
+        answer: currentAnswer
+      };
 
-        // Check if currentQuestionIndex is valid
-        if (currentQuestionIndex >= allQuestions.length) {
-            setError('No more questions available.');
-            return;
+      const updatedAnswers = [...answers, newAnswer];
+      setAnswers(updatedAnswers);
+
+      if (currentQuestionIndex >= (questionsData.predefinedQuestions?.length || 0) - 1 &&
+        allQuestions.length < 20) {
+
+        setIsGeneratingQuestion(true);
+        const success = await generateNextAIQuestion(updatedAnswers);
+
+        if (!success) {
+          throw new Error('Failed to generate next question. Please try again.');
         }
+      }
 
-        const currentQ = allQuestions[currentQuestionIndex];
-        const newAnswer = {
-            question: currentQ.question,
-            answer: currentAnswer
-        };
-
-        console.log('\nSaving Current Answer:');
-        console.log('Question:', currentQ.question);
-        console.log('Selected Answer:', currentAnswer);
-
-        const updatedAnswers = [...answers, newAnswer];
-        setAnswers(updatedAnswers);
-
-        // Check if we need to generate AI questions
-        if (currentQuestionIndex >= (questionsData.predefinedQuestions?.length || 0) - 1 &&
-            allQuestions.length < 20) {
-
-            console.log('\nStarting AI Question Generation');
-            console.log('Predefined Questions Completed:', questionsData.predefinedQuestions?.length || 0);
-            console.log('Current Total Questions:', allQuestions.length);
-
-            setIsGeneratingQuestion(true);
-            const success = await generateNextAIQuestion(updatedAnswers);
-
-            if (!success) {
-                throw new Error('Failed to generate next question. Please try again.');
-            }
-        }
-
-        // Proceed to next question
-        if (currentQuestionIndex < allQuestions.length - 1) {
-            console.log('\nMoving to next question');
-            setCurrentQuestionIndex(prev => prev + 1);
-            setCurrentAnswer('');
-        } else if (updatedAnswers.length >= 20) {
-            console.log('\nAll questions completed, proceeding to analysis');
-            handleFinish(updatedAnswers);
-        }
+      if (currentQuestionIndex < allQuestions.length - 1) {
+        setCurrentQuestionIndex(prev => prev + 1);
+        setCurrentAnswer('');
+      } else if (updatedAnswers.length >= 20) {
+        handleFinish(updatedAnswers);
+      }
 
     } catch (err) {
-        console.error('Error:', err);
-        setError(err.message || 'An unexpected error occurred');
+      console.error('Error:', err);
+      setError(err.message || 'An unexpected error occurred');
     } finally {
-        clearTimeout(loaderTimeout);
-        setIsLoading(false);
-        setShowLoader(false);
-        setIsGeneratingQuestion(false);
-        console.log('=== End of Processing ===\n');
+      clearTimeout(loaderTimeout);
+      setIsLoading(false);
+      setShowLoader(false);
+      setIsGeneratingQuestion(false);
     }
-};
+  };
 
   const handleFinish = async (finalAnswers) => {
-    console.log('\n=== Starting Final Analysis ===');
-    console.log('Total Questions Answered:', finalAnswers.length);
-    console.log('All Questions and Answers:');
-    finalAnswers.forEach((qa, index) => {
-      console.log(`\nQ${index + 1}: ${qa.question}`);
-      console.log(`A${index + 1}: ${qa.answer}`);
-    });
-
     setIsAnalyzing(true);
     let retryCount = 0;
     const maxRetries = 2;
 
     while (retryCount <= maxRetries) {
       try {
-        console.log('Attempting analysis...', { attempt: retryCount + 1 });
         const response = await api.analyzeAnswers(finalAnswers);
-        
+
         if (!response.ai_generated_careers || !response.pdf_based_careers) {
           throw new Error('Invalid response format');
         }
-        
+
         setCareerResults(response.ai_generated_careers);
         setPdfCareerResults(response.pdf_based_careers);
-        console.log('\nAnalysis Complete');
-        console.log('Career Results:', response.ai_generated_careers);
         break; // Success, exit loop
-        
+
       } catch (err) {
         console.error(`Analysis attempt ${retryCount + 1} failed:`, err);
-        
+
         if (retryCount === maxRetries) {
           setError('Failed to analyze answers. Please try again.');
-          console.error('All analysis attempts failed');
         } else {
-          // Wait before retrying
           await new Promise(resolve => setTimeout(resolve, 2000));
           retryCount++;
           continue;
         }
       }
     }
-    
+
     setIsAnalyzing(false);
-    console.log('=== End of Analysis ===\n');
   };
 
   const handleSkipQuestion = async () => {
@@ -310,185 +254,54 @@ function App() {
     </div>
   );
 
-  // Update the progress display in the header
-  const getProgressText = () => {
-    if (currentQuestionIndex < questionsData.predefinedQuestions.length) {
-      return `Predefined Question ${currentQuestionIndex + 1} of 10`;
-    } else {
-      return `AI Question ${currentQuestionIndex - 9} of 10`;
-    }
-  };
-
   const CareerSection = ({ title, careers, icon: Icon }) => {
-    // Add validation for careers array
+    const [expandedCareer, setExpandedCareer] = useState(null);
+
+    const toggleCareer = (index) => {
+      setExpandedCareer(expandedCareer === index ? null : index);
+    };
+
     if (!careers || !Array.isArray(careers)) {
-        return null;
+      return null;
     }
 
     return (
-        <div className="mb-8 animate-fade-in">
-            <h2 className="text-2xl font-bold mb-4 flex items-center">
-                <Icon className="w-6 h-6 mr-2" />
-                {title}
-            </h2>
-            <div className="space-y-6">
-                {careers.map((career, index) => {
-                    // Ensure career object has all required properties
-                    const careerData = {
-                        ...career,
-                        roadmap: career.roadmap || [
-                            "Entry Level: Required skills and certifications",
-                            "Mid Level: Advanced skills and experience",
-                            "Senior Level: Expert knowledge and leadership"
-                        ],
-                        colleges: career.colleges || [
-                            {
-                                name: "Recommended University",
-                                program: "Related Degree Program",
-                                duration: "4 years",
-                                location: "Various Locations"
-                            }
-                        ]
-                    };
-
-                    return (
-                        <div 
-                            key={index}
-                            className="bg-white rounded-lg shadow-md p-6 transform hover:scale-102 transition-all duration-200"
-                            style={{ animationDelay: `${index * 200}ms` }}
-                        >
-                            <div className="flex justify-between items-start mb-4">
-                                <h3 className="text-xl font-semibold text-blue-600">
-                                    {careerData.title || 'Career Option'}
-                                </h3>
-                                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full">
-                                    {careerData.match || 0}% Match
-                                </span>
-                            </div>
-                            <p className="text-gray-600 mb-4">
-                                {careerData.description || 'No description available'}
-                            </p>
-                            
-                            <CareerRoadmap career={careerData} />
-                        </div>
-                    );
-                })}
-            </div>
+      <div className="mb-8 animate-fade-in">
+        <h2 className="text-2xl font-bold mb-4 flex items-center">
+          <Icon className="w-6 h-6 mr-2" />
+          {title}
+        </h2>
+        <div className="space-y-6">
+          {careers.map((career, index) => {
+            const isExpanded = expandedCareer === index;
+            return (
+              <div
+                key={index}
+                className={`bg-white rounded-lg shadow-md p-6 transform transition-all duration-200 ${isExpanded ? 'scale-105 z-10' : 'hover:scale-102'}`}
+                style={{ animationDelay: `${index * 200}ms` }}
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-xl font-semibold text-blue-600 cursor-pointer" onClick={() => toggleCareer(index)}>
+                    {career.title || 'Career Option'}
+                    <ChevronRight className={`inline-block w-4 h-4 ml-1 transform transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`} />
+                  </h3>
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full">
+                    {career.matchScore || 0}% Match
+                  </span>
+                </div>
+                {isExpanded && (
+                  <>
+                    <p className="text-gray-600 mb-4">{career.description || 'No description available'}</p>
+                    <CareerRoadmap career={career} />
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
-    );
-  };
-
-  if (careerResults) {
-    return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50">
-        <Navbar />
-        <main className="flex-grow container mx-auto px-4 pt-28 pb-20">
-          {showLoader && <LoadingSpinner />}
-
-          {error && (
-            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded animate-shake">
-              {error}
-            </div>
-          )}
-
-          {!careerResults && currentQuestionIndex < allQuestions.length && (
-            <div className="max-w-2xl mx-auto">
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 transform transition-all duration-300 hover:shadow-2xl animate-float">
-                <div className="flex items-center space-x-2 mb-6">
-                  <Target className="w-6 h-6 text-indigo-500 animate-pulse" />
-                  <h2 className="text-2xl font-bold text-gray-800">
-                    {allQuestions[currentQuestionIndex]?.question}
-                  </h2>
-                </div>
-                <div className="space-y-3">
-                  {allQuestions[currentQuestionIndex]?.options.map((option, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleSelectAnswer(option)}
-                      disabled={isLoading}
-                      className={`w-full p-4 text-left rounded-xl transition-all duration-300 transform hover:scale-102 hover:shadow-md flex items-center space-x-3 ${currentAnswer === option
-                        ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg'
-                        : 'bg-white hover:bg-gray-50 text-gray-700'
-                        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center ${currentAnswer === option ? 'bg-white/20' : 'bg-gray-100'
-                        }`}>
-                        {index + 1}
-                      </div>
-                      <span>{option}</span>
-                    </button>
-                  ))}
-                </div>
-                <div className="flex justify-between mt-8 space-x-4">
-                  <button
-                    onClick={handleSkipQuestion}
-                    disabled={isLoading}
-                    className={`flex items-center px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all duration-200 group ${isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                  >
-                    <SkipForward className="w-4 h-4 mr-2 group-hover:animate-bounce" />
-                    Skip
-                  </button>
-                  <button
-                    onClick={handleNextQuestion}
-                    disabled={!currentAnswer || isLoading}
-                    className={`flex items-center px-6 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-lg hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 group ${!currentAnswer || isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        {isGeneratingQuestion ? 'Generating...' : 'Loading...'}
-                      </>
-                    ) : currentQuestionIndex < 19 ? (
-                      <>
-                        Next
-                        <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                      </>
-                    ) : (
-                      'Complete'
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {isAnalyzing && (
-            <div className="text-center py-20 animate-fade-in">
-              <div className="relative w-20 h-20 mx-auto mb-4">
-                <Compass className="w-20 h-20 text-blue-500 animate-spin-slow" />
-                <Zap className="w-8 h-8 text-yellow-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse" />
-              </div>
-              <p className="mt-4 text-xl text-gray-700">Analyzing your responses...</p>
-            </div>
-          )}
-
-          {careerResults && (
-            <>
-              <CareerSection 
-                title="AI-Generated Career Recommendations" 
-                careers={careerResults} 
-                icon={Sparkles}
-              />
-              
-              {pdfCareerResults && (
-                <CareerSection 
-                  title="PDF-Based Career Matches" 
-                  careers={pdfCareerResults} 
-                  icon={BookOpen}
-                />
-              )}
-
-              
-            </>
-          )}
-        </main>
-
-        <Footer />
       </div>
     );
-  }
+  };
 
   const questionText = allQuestions?.length ? allQuestions[currentQuestionIndex].question : 'No questions available.';
 
@@ -579,16 +392,16 @@ function App() {
 
         {careerResults && (
           <>
-            <CareerSection 
-              title="BI-Generated Career Recommendations" 
-              careers={careerResults} 
+            <CareerSection
+              title="AI-Generated Career Recommendations"
+              careers={careerResults}
               icon={Sparkles}
             />
-            
+
             {pdfCareerResults && (
-              <CareerSection 
-                title="PDF-Based Career Matches" 
-                careers={pdfCareerResults} 
+              <CareerSection
+                title="PDF-Based Career Matches"
+                careers={pdfCareerResults}
                 icon={BookOpen}
               />
             )}

@@ -5,14 +5,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import Index from "./pages/Index.jsx";
-// import Test from "./pages/Test.jsx";
 import SignUp from "./pages/SignUp.jsx";
 import SignIn from "./pages/SignIn.jsx";
 import Profile from "./pages/Profile.jsx";
 import NotFound from "./pages/NotFound.jsx";
-// import HomePage from './components/HomePage';
 import QuesRes from './components/Ques_res';
 import ChatBot from './components/ChatBot';
+import Group from "./components/Group.jsx";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +25,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/test" element={<QuesRes />} />
+            <Route path="/group" element={<Group />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/profile" element={<Profile />} />

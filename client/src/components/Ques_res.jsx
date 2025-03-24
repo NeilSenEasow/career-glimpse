@@ -23,6 +23,7 @@ import LoadingSpinner from './LoadingSpinner';
 // import ChatBot from './ChatBot'
 import Navbar from './Navbar';
 import Footer from './Footer';
+import { useLocation } from 'react-router-dom';
 
 function App() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -40,11 +41,28 @@ function App() {
   const [webCareerResults, setWebCareerResults] = useState(null);
   const [isWebSearching, setIsWebSearching] = useState(false);
   const [pdfCareerResults, setPdfCareerResults] = useState(null);
+  const location = useLocation();
 
   useEffect(() => {
-    // Initialize with predefined questions
-    setAllQuestions(questionsData.predefinedQuestions);
-  }, []);
+    // Get the category from the URL query parameters
+    const queryParams = new URLSearchParams(location.search);
+    const category = queryParams.get('category');
+
+    // Load questions based on the selected category
+    if (category) {
+      fetchQuestions(category);
+    }
+  }, [location]);
+
+  const fetchQuestions = (category) => {
+    try {
+      const questions = questionsData.tracks[category] || []; // Get questions based on the category
+      setAllQuestions(questions);
+    } catch (err) {
+      console.error('Error loading questions:', err);
+      setError('Failed to load questions.');
+    }
+  };
 
   const handleSelectAnswer = (option) => {
     setCurrentAnswer(option);
@@ -91,74 +109,86 @@ function App() {
   };
 
   const handleNextQuestion = async () => {
+    // Check if allQuestions is defined and has questions
+    if (!allQuestions?.length) {
+        setError('No questions available. Please go back and select a category.');
+        return;
+    }
+
     if (!currentAnswer) {
-      setError('Please select an answer before continuing');
-      return;
+        setError('Please select an answer before continuing');
+        return;
     }
 
     setIsLoading(true);
     setError(null);
 
     const loaderTimeout = setTimeout(() => {
-      setShowLoader(true);
+        setShowLoader(true);
     }, 5000);
 
     try {
-      // Log current question and answer
-      console.log('\n=== Processing Next Question ===');
-      console.log('Current Question Index:', currentQuestionIndex);
-      console.log('Total Questions:', allQuestions.length);
+        // Log current question and answer
+        console.log('\n=== Processing Next Question ===');
+        console.log('Current Question Index:', currentQuestionIndex);
+        console.log('Total Questions:', allQuestions.length);
 
-      const currentQ = allQuestions[currentQuestionIndex];
-      const newAnswer = {
-        question: currentQ.question,
-        answer: currentAnswer
-      };
-
-      console.log('\nSaving Current Answer:');
-      console.log('Question:', currentQ.question);
-      console.log('Selected Answer:', currentAnswer);
-
-      const updatedAnswers = [...answers, newAnswer];
-      setAnswers(updatedAnswers);
-
-      // Generate AI question after predefined questions
-      if (currentQuestionIndex >= questionsData.predefinedQuestions.length - 1 &&
-        allQuestions.length < 20) {
-
-        console.log('\nStarting AI Question Generation');
-        console.log('Predefined Questions Completed:', questionsData.predefinedQuestions.length);
-        console.log('Current Total Questions:', allQuestions.length);
-
-        setIsGeneratingQuestion(true);
-        const success = await generateNextAIQuestion(updatedAnswers);
-
-        if (!success) {
-          throw new Error('Failed to generate next question. Please try again.');
+        // Check if currentQuestionIndex is valid
+        if (currentQuestionIndex >= allQuestions.length) {
+            setError('No more questions available.');
+            return;
         }
-      }
 
-      // Proceed to next question
-      if (currentQuestionIndex < allQuestions.length - 1) {
-        console.log('\nMoving to next question');
-        setCurrentQuestionIndex(prev => prev + 1);
-        setCurrentAnswer('');
-      } else if (updatedAnswers.length >= 20) {
-        console.log('\nAll questions completed, proceeding to analysis');
-        handleFinish(updatedAnswers);
-      }
+        const currentQ = allQuestions[currentQuestionIndex];
+        const newAnswer = {
+            question: currentQ.question,
+            answer: currentAnswer
+        };
+
+        console.log('\nSaving Current Answer:');
+        console.log('Question:', currentQ.question);
+        console.log('Selected Answer:', currentAnswer);
+
+        const updatedAnswers = [...answers, newAnswer];
+        setAnswers(updatedAnswers);
+
+        // Check if we need to generate AI questions
+        if (currentQuestionIndex >= (questionsData.predefinedQuestions?.length || 0) - 1 &&
+            allQuestions.length < 20) {
+
+            console.log('\nStarting AI Question Generation');
+            console.log('Predefined Questions Completed:', questionsData.predefinedQuestions?.length || 0);
+            console.log('Current Total Questions:', allQuestions.length);
+
+            setIsGeneratingQuestion(true);
+            const success = await generateNextAIQuestion(updatedAnswers);
+
+            if (!success) {
+                throw new Error('Failed to generate next question. Please try again.');
+            }
+        }
+
+        // Proceed to next question
+        if (currentQuestionIndex < allQuestions.length - 1) {
+            console.log('\nMoving to next question');
+            setCurrentQuestionIndex(prev => prev + 1);
+            setCurrentAnswer('');
+        } else if (updatedAnswers.length >= 20) {
+            console.log('\nAll questions completed, proceeding to analysis');
+            handleFinish(updatedAnswers);
+        }
 
     } catch (err) {
-      console.error('Error:', err);
-      setError(err.message || 'An unexpected error occurred');
+        console.error('Error:', err);
+        setError(err.message || 'An unexpected error occurred');
     } finally {
-      clearTimeout(loaderTimeout);
-      setIsLoading(false);
-      setShowLoader(false);
-      setIsGeneratingQuestion(false);
-      console.log('=== End of Processing ===\n');
+        clearTimeout(loaderTimeout);
+        setIsLoading(false);
+        setShowLoader(false);
+        setIsGeneratingQuestion(false);
+        console.log('=== End of Processing ===\n');
     }
-  };
+};
 
   const handleFinish = async (finalAnswers) => {
     console.log('\n=== Starting Final Analysis ===');
@@ -460,7 +490,7 @@ function App() {
     );
   }
 
-  const currentQuestion = allQuestions[currentQuestionIndex];
+  const questionText = allQuestions?.length ? allQuestions[currentQuestionIndex].question : 'No questions available.';
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50">
@@ -480,7 +510,7 @@ function App() {
               <div className="flex items-center space-x-2 mb-6">
                 <Target className="w-6 h-6 text-indigo-500 animate-pulse" />
                 <h2 className="text-2xl font-bold text-gray-800">
-                  {allQuestions[currentQuestionIndex]?.question}
+                  {questionText}
                 </h2>
               </div>
               <div className="space-y-3">
@@ -550,7 +580,7 @@ function App() {
         {careerResults && (
           <>
             <CareerSection 
-              title="AI-Generated Career Recommendations" 
+              title="BI-Generated Career Recommendations" 
               careers={careerResults} 
               icon={Sparkles}
             />

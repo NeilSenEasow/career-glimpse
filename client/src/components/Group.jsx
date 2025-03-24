@@ -37,6 +37,11 @@ function Group() {
     setSelectedCategory(categoryId);
   };
 
+  const handleContinue = () => {
+    // Redirect to /test with the selected category as a query parameter
+    window.location.href = `/test?category=${selectedCategory}`;
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50">
       <Navbar />
@@ -72,6 +77,7 @@ function Group() {
           {selectedCategory && (
             <div className="mt-8 text-center">
               <button 
+                onClick={handleContinue}
                 className="px-8 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-102"
               >
                 Continue

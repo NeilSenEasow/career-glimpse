@@ -84,7 +84,7 @@ const Hero = () => {
                     <p className="text-sm text-foreground/70">Based on your unique profile</p>
                   </div>
                 </div>
-                <Link to={"/test"} >
+                <Link to={"/group"} >
                   <button className="w-full py-3 rounded-lg bg-gradient-primary text-white font-medium transition-all hover:shadow-lg">
                     Start Assessment
                   </button>

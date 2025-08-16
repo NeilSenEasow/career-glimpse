@@ -23,7 +23,7 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import { useLocation } from 'react-router-dom';
 
-function App() {
+function Ques_res() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState([]);
   const [currentAnswer, setCurrentAnswer] = useState('');
@@ -39,24 +39,26 @@ function App() {
   const [webCareerResults, setWebCareerResults] = useState(null);
   const [isWebSearching, setIsWebSearching] = useState(false);
   const [pdfCareerResults, setPdfCareerResults] = useState(null);
-  const [location, setLocation] = useState(null);
+  const [predefinedQuestionsCount, setPredefinedQuestionsCount] = useState(0);
+
+  const location = useLocation();
 
   useEffect(() => {
-    const queryParams = new URLSearchParams(window.location.search);
+    const queryParams = new URLSearchParams(location.search);
     const category = queryParams.get('category');
 
     if (category) {
       fetchQuestions(category);
     }
-
-    // Optionally, get the current path
-    setLocation(window.location.pathname);
-  }, []);
+  }, [location.search]);
 
   const fetchQuestions = (category) => {
     try {
       const questions = questionsData.tracks[category] || [];
-      setAllQuestions(questions);
+      // To get exactly one predefined question, we take the first one.
+      const initialQuestion = questions.length > 0 ? [questions[0]] : [];
+      setAllQuestions(initialQuestion);
+      setPredefinedQuestionsCount(initialQuestion.length);
     } catch (err) {
       console.error('Error loading questions:', err);
       setError('Failed to load questions.');
@@ -119,24 +121,22 @@ function App() {
       const updatedAnswers = [...answers, newAnswer];
       setAnswers(updatedAnswers);
 
-      if (currentQuestionIndex >= (questionsData.predefinedQuestions?.length || 0) - 1 &&
-        allQuestions.length < 20) {
-
+      // Condition to handle the end of the quiz
+      if (updatedAnswers.length >= 11) { // 1 predefined + 10 AI questions = 11 total answers
+        handleFinish(updatedAnswers);
+      } else {
+        // Generate a new AI question and then move to the next question
         setIsGeneratingQuestion(true);
         const success = await generateNextAIQuestion(updatedAnswers);
 
         if (!success) {
           throw new Error('Failed to generate next question. Please try again.');
         }
-      }
-
-      if (currentQuestionIndex < allQuestions.length - 1) {
+        
+        // Move to the next question after a new one has been added
         setCurrentQuestionIndex(prev => prev + 1);
         setCurrentAnswer('');
-      } else if (updatedAnswers.length >= 20) {
-        handleFinish(updatedAnswers);
       }
-
     } catch (err) {
       console.error('Error:', err);
       setError(err.message || 'An unexpected error occurred');
@@ -228,7 +228,6 @@ function App() {
     setError(null);
 
     try {
-      // Send the analysis summary to backend for web search
       const response = await api.searchWebCareers(careerResults.analysis);
 
       if (response.data.error) {
@@ -333,8 +332,8 @@ function App() {
                     onClick={() => handleSelectAnswer(option)}
                     disabled={isLoading}
                     className={`w-full p-4 text-left rounded-xl transition-all duration-300 transform hover:scale-102 hover:shadow-md flex items-center space-x-3 ${currentAnswer === option
-                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg'
-                      : 'bg-white hover:bg-gray-50 text-gray-700'
+                        ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg'
+                        : 'bg-white hover:bg-gray-50 text-gray-700'
                       } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center ${currentAnswer === option ? 'bg-white/20' : 'bg-gray-100'
@@ -366,7 +365,7 @@ function App() {
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       {isGeneratingQuestion ? 'Generating...' : 'Loading...'}
                     </>
-                  ) : currentQuestionIndex < 19 ? (
+                  ) : answers.length < 10 ? (
                     <>
                       Next
                       <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -620,4 +619,4 @@ function App() {
   );
 }
 
-export default App;
+export default Ques_res;
